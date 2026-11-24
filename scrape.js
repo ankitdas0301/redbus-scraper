@@ -9,7 +9,13 @@ const acOnly = process.env.AC_ONLY !== 'false';
 (async () => {
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-http2',
+      '--disable-blink-features=AutomationControlled'
+    ]
   });
 
   try {
@@ -17,7 +23,12 @@ const acOnly = process.env.AC_ONLY !== 'false';
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       viewport: { width: 1366, height: 900 },
       locale: 'en-IN',
-      timezoneId: 'Asia/Kolkata'
+      timezoneId: 'Asia/Kolkata',
+      ignoreHTTPSErrors: true,
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-IN,en;q=0.9',
+        'Upgrade-Insecure-Requests': '1'
+      }
     });
 
     const page = await context.newPage();
@@ -28,7 +39,9 @@ const acOnly = process.env.AC_ONLY !== 'false';
     const searchUrl = `https://www.redbus.in/bus-tickets/${encodeURIComponent(source.toLowerCase())}-to-${encodeURIComponent(destination.toLowerCase())}?onward=${formattedDate}&doj=${formattedDate}`;
 
     console.log('Opening:', searchUrl);
-    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    const response = await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    console.log('HTTP Status:', response ? response.status() : 'no response');
+
     await page.waitForSelector('.bus-item, [class*="bus-item"], li.row-sec', { timeout: 25000 }).catch(() => {});
 
     for (let i = 0; i < 6; i++) {
@@ -91,6 +104,9 @@ const acOnly = process.env.AC_ONLY !== 'false';
 
     fs.writeFileSync('snapshot.json', JSON.stringify(snapshot, null, 2));
     console.log(`Saved snapshot.json with ${buses.length} AC buses.`);
+  } catch (err) {
+    console.error('EXACT ERROR:', err.message);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }
