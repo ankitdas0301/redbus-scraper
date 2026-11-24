@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { chromium } = require('playwright');
+const { firefox } = require('playwright');
 
 const source = process.env.SOURCE || 'Delhi';
 const destination = process.env.DESTINATION || 'Indore';
@@ -7,28 +7,18 @@ const travelDate = process.env.TRAVEL_DATE || '2026-11-30';
 const acOnly = process.env.AC_ONLY !== 'false';
 
 (async () => {
-  const browser = await chromium.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-http2',
-      '--disable-blink-features=AutomationControlled'
-    ]
-  });
+  const browser = await firefox.launch({ headless: true });
 
   try {
     const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0',
       viewport: { width: 1366, height: 900 },
       locale: 'en-IN',
-      timezoneId: 'Asia/Kolkata',
-      ignoreHTTPSErrors: true,
-      extraHTTPHeaders: {
-        'Accept-Language': 'en-IN,en;q=0.9',
-        'Upgrade-Insecure-Requests': '1'
-      }
+      timezoneId: 'Asia/Kolkata'
+    });
+
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
 
     const page = await context.newPage();
@@ -39,8 +29,11 @@ const acOnly = process.env.AC_ONLY !== 'false';
     const searchUrl = `https://www.redbus.in/bus-tickets/${encodeURIComponent(source.toLowerCase())}-to-${encodeURIComponent(destination.toLowerCase())}?onward=${formattedDate}&doj=${formattedDate}`;
 
     console.log('Opening:', searchUrl);
-    const response = await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    const response = await page.goto(searchUrl, { waitUntil: 'commit', timeout: 30000 });
     console.log('HTTP Status:', response ? response.status() : 'no response');
+
+    await page.waitForLoadState('domcontentloaded', { timeout: 20000 }).catch(() => {});
+    console.log('Page Title:', await page.title().catch(() => 'unavailable'));
 
     await page.waitForSelector('.bus-item, [class*="bus-item"], li.row-sec', { timeout: 25000 }).catch(() => {});
 
