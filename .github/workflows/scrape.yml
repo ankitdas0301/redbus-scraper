@@ -28,10 +28,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies & Chromium
+      - name: Check RedBus reachability
+        run: curl -I --max-time 12 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0" "https://www.redbus.in/" || echo "CURL_BLOCKED_OR_TIMED_OUT"
+
+      - name: Install dependencies & Firefox
         run: |
           npm install
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps firefox
 
       - name: Run RedBus Scraper
         env:
@@ -47,3 +50,4 @@ jobs:
           git add snapshot.json
           git diff --staged --quiet || git commit -m "Update RedBus snapshot"
           git push
+          
