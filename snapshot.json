@@ -1,0 +1,14 @@
+{
+  "source": "Delhi",
+  "destination": "Indore",
+  "travelDate": "2026-11-30",
+  "collectedAt": "2026-11-24T14:55:46.032Z",
+  "summary": {
+    "acBuses": 0,
+    "operators": 0,
+    "lowest": null,
+    "median": null,
+    "estOcc": null
+  },
+  "buses": []
+}
